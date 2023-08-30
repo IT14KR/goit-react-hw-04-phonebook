@@ -1,38 +1,26 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { Container, SubTitle, Title, Wrapper } from './App.styled';
 import ContactForm from './ContactForm/ContactForm';
 import ContactList from './ContactList/ContactList';
 import Filter from './Filter/Filter';
 
-export class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState(
+    () => JSON.parse(localStorage.getItem('contacts')) ?? []
+  );
 
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const parsedContacts = JSON.parse(contacts);
+  const [filter, setFilter] = useState('');
 
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
+  useEffect(() => {
+    const savedContacts = localStorage.getItem('contacts');
+    if (savedContacts) {
+      setContacts(JSON.parse(savedContacts));
     }
-  }
+  }, []);
 
-  componentDidUpdate(_, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
-
-  addContact = contact => {
-    const isInContacts = this.state.contacts.find(
+  const addContact = contact => {
+    const isInContacts = contacts.find(
       ({ name }) =>
         name.toLowerCase().trim() === contact.name.toLowerCase().trim()
     );
@@ -41,17 +29,17 @@ export class App extends Component {
       alert(`${contact.name} is already in contacts`);
       return;
     }
-    this.setState(prevState => ({
-      contacts: [{ id: nanoid(), ...contact }, ...prevState.contacts],
-    }));
+    setContacts(prevContacts => [
+      { id: nanoid(), ...contact },
+      ...prevContacts,
+    ]);
   };
 
-  changeFilter = event => {
-    this.setState({ filter: event.target.value.trim() });
+  const changeFilter = event => {
+    setFilter(event.target.value.trim());
   };
 
-  getVisibleContacts = () => {
-    const { filter, contacts } = this.state;
+  const getVisibleContacts = () => {
     const normalizedFilter = filter.toLowerCase();
 
     return contacts.filter(contact =>
@@ -59,37 +47,32 @@ export class App extends Component {
     );
   };
 
-  removeContact = contactId => {
-    this.setState(prevState => {
-      return {
-        contacts: prevState.contacts.filter(({ id }) => id !== contactId),
-      };
-    });
+  const removeContact = contactId => {
+    setContacts(prevContacts =>
+      prevContacts.filter(({ id }) => id !== contactId)
+    );
   };
 
-  render() {
-    const visibleContacts = this.getVisibleContacts();
-    const { filter } = this.state;
+  const visibleContacts = getVisibleContacts();
 
-    return (
-      <Container>
-        <Title>Phonebook</Title>
+  return (
+    <Container>
+      <Title>Phonebook</Title>
 
-        <ContactForm onSubmit={this.addContact} />
+      <ContactForm onSubmit={addContact} />
 
-        <SubTitle>Contacts</SubTitle>
-        {this.state.contacts.length > 0 ? (
-          <Filter value={filter} onChangeFilter={this.changeFilter} />
-        ) : (
-          <Wrapper>Your phonebook is empty. Add first contact!</Wrapper>
-        )}
-        {this.state.contacts.length > 0 && (
-          <ContactList
-            contacts={visibleContacts}
-            onRemoveContact={this.removeContact}
-          />
-        )}
-      </Container>
-    );
-  }
-}
+      <SubTitle>Contacts</SubTitle>
+      {contacts.length > 0 ? (
+        <Filter value={filter} onChangeFilter={changeFilter} />
+      ) : (
+        <Wrapper>Your phonebook is empty. Add first contact!</Wrapper>
+      )}
+      {contacts.length > 0 && (
+        <ContactList
+          contacts={visibleContacts}
+          onRemoveContact={removeContact}
+        />
+      )}
+    </Container>
+  );
+};
